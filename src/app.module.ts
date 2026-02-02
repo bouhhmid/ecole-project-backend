@@ -15,14 +15,11 @@ import { AttachmentsModule } from './attachments/attachments.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '123',
-      database: 'education_db',
+      url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: true,
     }),
+
     UsersModule,
     AuthModule,
     GradesModule,
