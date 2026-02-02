@@ -9,7 +9,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200', // dev
-      'https://ton-frontend.vercel.app', // prod (à mettre plus tard)
+      'https://leafy-meringue-9f7a41.netlify.app', // prod (à mettre plus tard)
     ],
     credentials: true,
   });
