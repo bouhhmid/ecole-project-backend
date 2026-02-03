@@ -15,13 +15,30 @@ import { AttachmentsModule } from './attachments/attachments.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+
+      ...(process.env.DATABASE_URL
+        ? {
+          // 🌍 PRODUCTION (Render + Neon)
+          url: process.env.DATABASE_URL,
+          ssl: {
+            rejectUnauthorized: false,
+          },
+          synchronize: false, // ❌ JAMAIS EN PROD
+        }
+        : {
+          // 💻 LOCAL
+          host: 'localhost',
+          port: 5432,
+          username: 'postgres',
+          password: '123',
+          database: 'education_db',
+          ssl: false,
+          synchronize: true, // OK en local
+        }),
+
       autoLoadEntities: true,
-      synchronize: true,
     }),
+
 
     UsersModule,
     AuthModule,
