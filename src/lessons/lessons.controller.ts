@@ -15,6 +15,8 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { LessonsService } from './lessons.service';
 import { lessonStorage } from '../common/upload.config';
 import { Express } from 'express';
+import cloudinary from '../config/cloudinary';
+import * as fs from 'fs';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -41,7 +43,7 @@ export class LessonsController {
     return this.lessonsService.findOne(Number(id));
   }
 
-  // ================= CREATE (TEACHER ONLY) =================
+  // ================= CREATE =================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')
@@ -55,7 +57,7 @@ export class LessonsController {
       { storage: lessonStorage },
     ),
   )
-  create(
+  async create(
     @Body() body: any,
     @UploadedFiles()
       files: {
@@ -63,22 +65,48 @@ export class LessonsController {
       video?: Express.Multer.File[];
     },
   ) {
+    let imageUrl = body.imageUrls || null;
+    let videoUrl = null;
+
+    // 🔥 IMAGE
+    if (files?.image?.length) {
+      const result = await cloudinary.uploader.upload(files.image[0].path, {
+        folder: 'lessons/images',
+      });
+
+      imageUrl = result.secure_url;
+
+      if (fs.existsSync(files.image[0].path)) {
+        fs.unlinkSync(files.image[0].path);
+      }
+    }
+
+    // 🔥 VIDEO
+    if (files?.video?.length) {
+      const result = await cloudinary.uploader.upload(files.video[0].path, {
+        resource_type: 'video',
+        folder: 'lessons/videos',
+      });
+
+      videoUrl = result.secure_url;
+
+      if (fs.existsSync(files.video[0].path)) {
+        fs.unlinkSync(files.video[0].path);
+      }
+    }
+
     return this.lessonsService.create({
       title: body.title,
       description: body.description,
       gradeId: Number(body.gradeId) || 1,
       axisId: Number(body.axisId),
       youtubeUrl: body.youtubeUrl || null,
-      imageUrls: files?.image
-        ? `/uploads/images/${files.image[0].filename}`
-        : body.imageUrls || null,
-      videoUrl: files?.video
-        ? `/uploads/videos/${files.video[0].filename}`
-        : null,
+      imageUrls: imageUrl,
+      videoUrl: videoUrl,
     });
   }
 
-  // ================= UPDATE (TEACHER ONLY) =================
+  // ================= UPDATE =================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')
@@ -92,7 +120,7 @@ export class LessonsController {
       { storage: lessonStorage },
     ),
   )
-  update(
+  async update(
     @Param('id') id: string,
     @Body() body: any,
     @UploadedFiles()
@@ -101,22 +129,46 @@ export class LessonsController {
       video?: Express.Multer.File[];
     },
   ) {
+    let imageUrl;
+    let videoUrl;
+
+    // 🔥 IMAGE
+    if (files?.image?.length) {
+      const result = await cloudinary.uploader.upload(files.image[0].path, {
+        folder: 'lessons/images',
+      });
+
+      imageUrl = result.secure_url;
+
+      if (fs.existsSync(files.image[0].path)) {
+        fs.unlinkSync(files.image[0].path);
+      }
+    }
+
+    // 🔥 VIDEO
+    if (files?.video?.length) {
+      const result = await cloudinary.uploader.upload(files.video[0].path, {
+        resource_type: 'video',
+        folder: 'lessons/videos',
+      });
+
+      videoUrl = result.secure_url;
+
+      if (fs.existsSync(files.video[0].path)) {
+        fs.unlinkSync(files.video[0].path);
+      }
+    }
+
     return this.lessonsService.update(Number(id), {
       title: body.title,
       description: body.description,
-      gradeId: body.gradeId ? Number(body.gradeId) : undefined,
-      axisId: body.axisId ? Number(body.axisId) : undefined,
       youtubeUrl: body.youtubeUrl,
-      imageUrls: files?.image
-        ? `/uploads/images/${files.image[0].filename}`
-        : undefined,
-      videoUrl: files?.video
-        ? `/uploads/videos/${files.video[0].filename}`
-        : undefined,
+      imageUrls: imageUrl,
+      videoUrl: videoUrl,
     });
   }
 
-  // ================= DELETE (TEACHER ONLY) =================
+  // ================= DELETE =================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('teacher')
