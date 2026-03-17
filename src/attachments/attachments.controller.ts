@@ -9,6 +9,8 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AttachmentsService } from './attachments.service';
 import cloudinary from '../config/cloudinary';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import * as fs from 'fs';
 
 @Controller('attachments')
@@ -17,8 +19,21 @@ export class AttachmentsController {
 
   // 📤 UPLOAD (teacher)
   @Post(':gradeId')
-  @UseInterceptors(FilesInterceptor('files', 10))
-  async upload(
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      storage: diskStorage({
+        destination: './uploads/tmp',
+        filename: (_, file, cb) => {
+          const uniqueName =
+            Date.now() +
+            '-' +
+            Math.round(Math.random() * 1e9) +
+            extname(file.originalname);
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )  async upload(
     @Param('gradeId') gradeId: string,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
