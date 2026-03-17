@@ -7,9 +7,9 @@ import {
   UploadedFiles,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { AttachmentsService } from './attachments.service';
+import cloudinary from '../config/cloudinary';
+import * as fs from 'fs';
 
 @Controller('attachments')
 export class AttachmentsController {
@@ -17,21 +17,7 @@ export class AttachmentsController {
 
   // 📤 UPLOAD (teacher)
   @Post(':gradeId')
-  @UseInterceptors(
-    FilesInterceptor('files', 10, {
-      storage: diskStorage({
-        destination: './uploads/attachments',
-        filename: (_, file, cb) => {
-          const uniqueName =
-            Date.now() +
-            '-' +
-            Math.round(Math.random() * 1e9) +
-            extname(file.originalname);
-          cb(null, uniqueName);
-        },
-      }),
-    }),
-  )
+  @UseInterceptors(FilesInterceptor('files', 10))
   async upload(
     @Param('gradeId') gradeId: string,
     @UploadedFiles() files: Express.Multer.File[],
@@ -39,18 +25,26 @@ export class AttachmentsController {
     const saved = [];
 
     for (const file of files) {
+
+      // 🔥 upload vers cloudinary
+      const result = await cloudinary.uploader.upload(file.path);
+
+      // 🔥 sauvegarde URL cloudinary
       const attachment = await this.service.create({
         gradeId: Number(gradeId),
-        imageUrl: `/uploads/attachments/${file.filename}`,
+        imageUrl: result.secure_url,
       });
 
       saved.push(attachment);
+
+      // 🧹 supprimer fichier local (optionnel mais propre)
+      fs.unlinkSync(file.path);
     }
 
     return saved;
   }
 
-  // 📥 GET (student + teacher)
+  // 📥 GET
   @Get('grade/:gradeId')
   findByGrade(@Param('gradeId') gradeId: string) {
     return this.service.findByGrade(Number(gradeId));
