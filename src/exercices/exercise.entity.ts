@@ -11,13 +11,9 @@ export class Exercise {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  // lien externe (PDF Google Drive, image, etc.)
+  // 🔥 URL Cloudinary ou lien externe
   @Column({ nullable: true })
   fileUrl: string;
-
-  // fichier uploadé (PDF / image)
-  @Column({ nullable: true })
-  filePath: string;
 
   @Column()
   gradeId: number;
