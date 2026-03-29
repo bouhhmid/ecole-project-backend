@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,7 +17,6 @@ async function bootstrap() {
   });
 
 
-  // ✅ IMPORTANT : middleware AVANT listen
   const uploadsPath = path.join(__dirname, '..', 'uploads');
   app.use('/uploads', express.static(uploadsPath));
 

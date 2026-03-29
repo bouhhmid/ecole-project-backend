@@ -5,7 +5,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ExercisesService } from './exercises.service';
 import cloudinary from '../config/cloudinary';
-import * as streamifier from 'streamifier';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import * as fs from 'fs';
 
 @Controller('exercises')
 export class ExercisesController {
@@ -17,7 +19,19 @@ export class ExercisesController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/tmp',
+        filename: (_, file, cb) => {
+          const uniqueName =
+            Date.now() + '-' + Math.round(Math.random() * 1e9) +
+            extname(file.originalname);
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
   async create(
     @Body() body: any,
     @UploadedFile() file?: Express.Multer.File,
@@ -25,24 +39,17 @@ export class ExercisesController {
     let uploadedUrl: string | null = null;
 
     if (file) {
-      const result = await new Promise<any>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto', // 🔥 support PDF + images
-            folder: 'exercises',
-          },
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
-          },
-        );
-
-        streamifier.createReadStream(file.buffer).pipe(stream);
+      const result = await cloudinary.uploader.upload(file.path, {
+        resource_type: 'raw', // 🔥 très important
+        folder: 'exercises',
+        type: 'upload',
+        access_mode: 'public',
       });
-
       uploadedUrl = result.secure_url;
-    }
+      console.log('UPLOAD RESULT:', result);
 
+      fs.unlinkSync(file.path);
+    }
     return this.service.create({
       title: body.title,
       description: body.description,
